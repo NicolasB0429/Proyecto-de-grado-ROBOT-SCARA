@@ -1,5 +1,5 @@
 <h1 align="center">DESARROLLO DE UN ROBOT SCARA CON RASPBERRY PI PARA EL PROCESAMIENTO DE IMAGENES Y MODELO DE RED NEURONAL 🤖🦾<br> 
-Version 3 ✨<br>
+Version 3.0 ✨<br>
 Nicolas Barrera y Angie Mancipe<br>
 Universidad Ecci 🏫</h1><br>
 

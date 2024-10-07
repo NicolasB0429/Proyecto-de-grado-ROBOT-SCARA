@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 #Leer la imagen en formato cv2
-imagen = cv2.imread('pruebas/imagenes/img/hyundai2.png')
+imagen = cv2.imread('pruebas/imagenes/img/hyundai.png')
 
 # Convertir la imagen a escala de grises
 img_gris = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
@@ -72,7 +72,3 @@ plt.show()
 #cv2.waitKey(0)
 #Eliminar todas las ventanas de cv2
 #cv2.destroyAllWindows()
-
-
-
-
