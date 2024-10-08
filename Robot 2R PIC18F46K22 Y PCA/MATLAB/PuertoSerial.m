@@ -1,6 +1,6 @@
-clc
-clear all
-close all 
+function PuertoSerial(angulo1, angulo2)
+servo1 = angulo1
+servo2 = angulo2
 
 %Elimina la basura que queda en el puerto
 oldobj = instrfind; %Encontrar un objeto Serial
@@ -11,7 +11,7 @@ end
 
 % Crear el puerto serial (Se crea el objeto con las confguraciones del puerto serial) 
 if ~exist('s','var')
-    s = serial('COM3','BaudRate',9600,'DataBits',8,'Parity','None','StopBits',1);%Serial Funcion de MATLAB
+    s = serial('COM2','BaudRate',9600,'DataBits',8,'Parity','None','StopBits',1);%Serial Funcion de MATLAB
 end
 
 %Apertura del puerto serial 
@@ -23,19 +23,19 @@ end
 %fprinf para enviar datos
 %fscanf(s); %Escaneo la variable s (Se peude asignar a una variable)
  
-s1 = 10.5;
+
 fprintf(s,'%s','A');
-%fprintf(s,'%d',s1);
-fprintf(s,'%.2f',s1);
+%fprintf(s,'%2.f',servo1);Envia enteros
+fprintf(s,'%.2f',servo1);
+%fprintf(s,'%d',servo1);
 fprintf(s,'%s \n','O');
 
-s2 = 180;
 fprintf(s,'%s','B');
-%fprintf(s,'%d',s2);
-fprintf(s,'%.2f',s2);
+fprintf(s,'%.2f',servo2);
+%fprintf(s,'%d',servo2);
 fprintf(s,'%s \n','O');
 
 fprintf(s,'%s \n','K'); % Confirmación Total
 
-fclose(s); % Cierra el puerto Serial
-% Termina Pisciones Iniciales Servos
+fclose(s); 
+end

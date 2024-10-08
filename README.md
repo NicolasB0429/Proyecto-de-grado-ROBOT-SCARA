@@ -22,11 +22,16 @@ Desarrollo de un brazo robótico de 2 grados de libertad (GDL) programado median
 - **MATLAB**: Lenguaje de programación para controlar el brazo robótico de 2GDL.
 - **MPLAB X**: Entorno de desarrollo integrado (IDE) de Microchip Technology utilizado para programar y controlar los servomotores mediante el microcontrolador PIC.
 - **XC8**: Compilador desarrollado por Microchip específicamente para los microcontroladores de 8 bits, como los de las familias PIC.
+- **Proteus**: Utilizado principalmente para el diseño, simulación y prueba de circuitos electrónicos.
 - **Windows 10**: Sistema operativo utilizado para el desarrollo del software y la ejecución de simulaciones.
 
 ### Librerías
 - **GUIDE**: Herramienta para la creación de interfaces gráficas de usuario (GUI) en MATLAB, utilizada para desarrollar una interfaz interactiva para el control del brazo robótico.
 - **Toolbox de Robótica de Peter Corke**: Conjunto de herramientas para MATLAB diseñado para la simulación, análisis y control de sistemas robóticos, que incluye funciones de cinemática, dinámica y control de robots.
+
+## PDF 📚
+- **Datasheet PIC18F46K22**: [Descargar](PDFs/PIC18F46K22.pdf)
+- **Datasheet PCA9685**: [Descargar](PDFs/datasheet_PCA9685.pdf)
 
 ## Artículo 📑
 **Desarrollo de un brazo robótico de 2 DOF impreso en 3D a través de un PIC18f46k22 y MATLAB para el trazo de contornos de imágenes**  

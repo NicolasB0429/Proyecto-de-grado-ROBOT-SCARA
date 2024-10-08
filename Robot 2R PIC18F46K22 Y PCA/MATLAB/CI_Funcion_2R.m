@@ -9,8 +9,8 @@ function [theta1,theta2] = CI_Funcion_2R(l1,l2,Px,Py)
     alpha = atan2(Py,Px);
     phi = atan2((l2*sen_theta2),(l1+l2*cos_theta2));
     theta1 = alpha - phi;
-    if theta1<0
-        theta1 = theta1*-1;
+    if theta1 <= -pi
+        theta1 = theta1 + (2*pi);
     end
     fprintf('Theta1 = %.3f \n',rad2deg(theta1));
 end
