@@ -1,5 +1,5 @@
 <h1 align="center">BRAZO ROBÓTICO DE 2GDL PROGRAMADADO CON MATLAB Y EL MICROCONTROLADOR PIC18F46K22🤖🦾<br> 
-Version 2 ✨<br>
+Version 2.0 ✨<br>
 Nicolas Barrera y Angie Mancipe<br>
 Universidad Ecci 🏫</h1><br>
 
@@ -33,13 +33,17 @@ Desarrollo de un brazo robótico de 2 grados de libertad (GDL) programado median
 - **Datasheet PIC18F46K22**: [Descargar](PDFs/PIC18F46K22.pdf)
 - **Datasheet PCA9685**: [Descargar](PDFs/datasheet_PCA9685.pdf)
 
+## Planos CAD SolidWorks 📐
+- **Base:** [Descargar](planos/Base.SLDPRT)
+- **Eslabon 1:** [Descargar](planos/Eslabon1.SLDPRT)
+- **Eslabon 2:** [Descargar](planos/Eslabon2.SLDPRT)
+
 ## Artículo 📑
 **Desarrollo de un brazo robótico de 2 DOF impreso en 3D a través de un PIC18f46k22 y MATLAB para el trazo de contornos de imágenes**  
 **Angie M., Nicolás B., Diego R., Fabián B.**  
 Popayán, Colombia: Universidad Unicomfacauca.  
 
 DOI: [https://doi.org/10.57173/ritc.v1n17a12](https://doi.org/10.57173/ritc.v1n17a12)
-
 
 ## Resultados ☑️
 
