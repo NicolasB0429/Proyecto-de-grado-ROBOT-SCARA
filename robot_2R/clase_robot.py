@@ -1,15 +1,16 @@
+import time
 import matplotlib
 matplotlib.use('Qt5Agg')
 
-import numpy as np
 import math
+import numpy as np
 import roboticstoolbox as rtb
-from roboticstoolbox import RevoluteDH, SerialLink
+from roboticstoolbox import RevoluteDH, PrismaticDH, SerialLink
 import matplotlib.pyplot as plt #Para plotear
 from scipy.io import loadmat #Cargar .mat
 import cv2 #Para generar contornos imagenes
 
-#Servos
+# # Servos
 # from adafruit_servokit import ServoKit
 # from time import sleep
 # kit=ServoKit(channels=16)
@@ -17,26 +18,48 @@ import cv2 #Para generar contornos imagenes
 # #Se puede cambiar el rango de actuacion del servo
 # kit.servo[0].set_pulse_width_range(600, 2500)
 # kit.servo[1].set_pulse_width_range(600, 2500)
+# kit.servo[2].set_pulse_width_range(600, 2500)
 
 class Robot:
     #Atributos
-    def __init__(self, nombre, l1, l2, pxInicial, pyInicial):
+    def __init__(self,nombre,l1,l2,pxInicial,pyInicial,pzInicial):
         self.nombre = nombre
         self.l1 = l1
         self.l2 = l2
-        #Coordenadas iniciales de cada metodo
+        # Para la Cremallera
+        self.arrriba_rad = math.radians(100)
+        self.arrriba_cor = 2 #cm
+        self.abajo = 0
+        
+        #Coordenadas iniciales de cada Articulación
         self.pxInicial = pxInicial
         self.pyInicial = pyInicial
+        self.pzInicial = pzInicial #Eje Z Cremallera
 
+        # servo1 = round(kit.servo[0].angle) 
+        # servo2 = round(kit.servo[1].angle)
+        # crem = round(kit.servo[2].angle)
+        # print(f"1:{servo1}, 2:{servo2}, 3:{crem}")
+        # if servo1 !=0 or servo2 !=0 or crem !=0:
+        # if servo1 !=0 or servo2 !=0:
+        #     kit.servo[2].angle=(math.degrees(self.arrriba_rad)) #Servo Cremallera
+        #     time.sleep(0.3)  # Pausa por 5 segundo
+        #     self.mover_servos(0, 0, self.arrriba_rad)
+        #     self.mover_servos(0, 0, self.abajo)
+    
     #Funcion para mover los servos
-    def mover_servos(self, theta1, theta2):
+    def mover_servos(self, theta1, theta2, theta_cre):
         # Convertir los �ngulos de radianes a grados (OPCIONAL)
         theta1 = math.degrees(theta1)
         theta2 = math.degrees(theta2)
+        theta_cre = math.degrees(theta_cre)
 
-        # kit.servo[0].angle= (theta1) #Servo 1
-        # kit.servo[1].angle= (theta2) #Servo 2
-
+        # kit.servo[0].angle=(theta1) #Servo 1
+        # kit.servo[1].angle=(theta2) #Servo 2
+        # time.sleep(0.3)
+        # kit.servo[2].angle=(theta_cre) #Servo Cremallera
+        # time.sleep(0.3)  # Pausa por 5 segundo
+        
     def coordenadas(self,xu,yu):
         # Cargar variables desde el archivo .mat
         contorno = loadmat('robot_2R/contorno.mat')
@@ -51,11 +74,15 @@ class Robot:
 
         Px1 = self.pxInicial
         Py1 = self.pyInicial
-        theta1_P1, theta2_P1 = self.CI(Px1, Py1)
+        Pz1 = self.arrriba_cor
+        
+        theta1_P1, theta2_P1, theta3_P1 = self.CI(Px1, Py1, Pz1)
 
         Px2 = xu
         Py2 = yu
-        theta1_P2, theta2_P2 = self.CI(Px2, Py2)
+        Pz2 = self.arrriba_cor
+        
+        theta1_P2, theta2_P2, tetha3_P2= self.CI(Px2, Py2, Pz2)
 
         #Derecha abajo
         for i in range(len(x1y1)): 
@@ -88,725 +115,88 @@ class Robot:
         if flag1 == 2 or flag2 == 2:           
             theta1P1_P2 = np.linspace(theta1_P1, theta1_P2, 10)
             theta2P1_P2 = np.linspace(theta2_P1, theta2_P2, 10)
+            theta3P1_P2 = theta3_P1
+
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0], theta2P1_P2[0], theta3P1_P2) 
+            self.mover_servos(theta1P1_P2[0], theta2P1_P2[0], theta3P1_P2)
 
             for i in range(len(theta1P1_P2)):
-                MTH = self.CD(theta1P1_P2[i], theta2P1_P2[i]) 
-                self.mover_servos(theta1P1_P2[i], theta2P1_P2[i])
+                MTH = self.CD(theta1P1_P2[i], theta2P1_P2[i], theta3P1_P2) 
+                self.mover_servos(theta1P1_P2[i], theta2P1_P2[i], theta3P1_P2)
                 plt.figure("Trayectoria Robot")
                 plt.plot(MTH.t[0], MTH.t[1], '*r')
                 # Realizar accion para la ultima iteracion
                 if i == len(theta1P1_P2) - 1: #Ultima Iteracion
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i], theta2P1_P2[i], self.abajo)
+                    self.mover_servos(theta1P1_P2[i], theta2P1_P2[i], self.abajo)
+                    # Guardar Coordenadas
                     self.pxInicial = MTH.t[0]
                     self.pyInicial = MTH.t[1]  
-
-            # # Mantener la figura abier
-            # plt.show(block=True)            
+                    self.pzInicial = self.abajo 
+                    
+            # Mantener la figura abierta
+            plt.show(block=True)            
         else:
             #Aqui va la imagen de error que no esta dentro del espacio de trabajo del Robot
             print("No esta dentro del espacio de trabajo del Robot")
-            
+
     def esp_trabajo(self):
         #Cantidad de linspace y de iteraciones en los for
         can_puntos = 5
+        
+        #Para ir a Posición Inicial
+        Px1 = self.pxInicial
+        Py1 = self.pyInicial
+        Pz1 = self.arrriba_cor
+        theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
+        
+        theta1P1_P2 = np.linspace(theta1_P1,0,can_puntos)
+        theta2P1_P2 = np.linspace(theta2_P1,(5/6)*np.pi,can_puntos)
 
-        theta1P1_P2 = 0
-        theta2P1_P2 = np.linspace((5/6)*np.pi, 0, can_puntos)
+        # Subir Cremallera
+        MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+        self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
+        
         for i in range(can_puntos):
-            MTH = self.CD(theta1P1_P2, theta2P1_P2[i]) 
-            self.mover_servos(theta1P1_P2 , theta2P1_P2[i])
+            MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+            self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+        
+        #Comienza entorno de trabajo
+        theta1P2_P3 = 0
+        theta2P2_P3 = np.linspace((5/6)*np.pi,0,can_puntos)
+        for i in range(can_puntos):
+            MTH = self.CD(theta1P2_P3,theta2P2_P3[i],self.abajo) 
+            self.mover_servos(theta1P2_P3,theta2P2_P3[i],self.abajo)
             
-        theta1P2_P3 = np.linspace(0, np.pi/2, can_puntos)
-        theta2P2_P3 = 0
-        for i in range(can_puntos):
-            MTH = self.CD(theta1P2_P3[i], theta2P2_P3) 
-            self.mover_servos(theta1P2_P3[i] , theta2P2_P3)
-
-        theta1P3_P4 = np.linspace(np.pi/2, np.pi, can_puntos)
+        theta1P3_P4 = np.linspace(0,np.pi/2,can_puntos)
         theta2P3_P4 = 0
         for i in range(can_puntos):
-            MTH = self.CD(theta1P3_P4[i], theta2P3_P4) 
-            self.mover_servos(theta1P3_P4[i] , theta2P3_P4)
+            MTH = self.CD(theta1P3_P4[i],theta2P3_P4,self.abajo) 
+            self.mover_servos(theta1P3_P4[i],theta2P3_P4,self.abajo)
 
-        theta1P4_P5 = np.pi
-        theta2P4_P5 = np.linspace(0, (5/6)*np.pi, can_puntos)
+        theta1P4_P5 = np.linspace(np.pi/2,np.pi,can_puntos)
+        theta2P4_P5 = 0
         for i in range(can_puntos):
-            MTH = self.CD(theta1P4_P5, theta2P4_P5[i]) 
-            self.mover_servos(theta1P4_P5 , theta2P4_P5[i])
+            MTH = self.CD(theta1P4_P5[i],theta2P4_P5,self.abajo) 
+            self.mover_servos(theta1P4_P5[i],theta2P4_P5,self.abajo)
+
+        theta1P5_P6 = np.pi
+        theta2P5_P6 = np.linspace(0,(29/36)*np.pi,can_puntos) #145
+        for i in range(can_puntos):
+            MTH = self.CD(theta1P5_P6,theta2P5_P6[i],self.abajo) 
+            self.mover_servos(theta1P5_P6,theta2P5_P6[i],self.abajo)
             # Realizar accion para la ultima iteracion
             if i == can_puntos - 1: #Ultima Iteracion
                 self.pxInicial = MTH.t[0]
                 self.pyInicial = MTH.t[1]
+                self.pzInicial = self.abajo
+    
+    def imagenes(self,opcion):
+        puntos = 3 #De a cada cuantos puntos se guardan imagenes
+        can_puntos = 2 #Numero de puntos for y linspace
         
-    def palabra(self, palabra):
-        #Funciion Interna Para la generacion de letras
-        def abecedario(letra, Px, Py):
-            #Numero de puntos de todas las letras
-            can_puntos = 3
-            #IMPORTANTE
-            lon = 2 #Esta variable hace lo largo de letra en este caso 2cm
-
-            #Generacion de todas las letras
-            if letra == 'a' or letra == 'A':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos) 
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos) 
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)  
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 'b' or letra == 'B':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos) 
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos) 
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/1, Px1, Py1, can_puntos)  
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)  
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon+1, Px1, Py1, can_puntos)     
-                 
-            elif letra == 'c' or letra == 'C':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon ,Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon+1, Px1, Py1, can_puntos)
-
-            elif letra == 'd' or letra == 'D':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2, -lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon/2, -lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon + 1, Px1, Py1, can_puntos)
-
-            elif letra == 'e' or letra == 'E':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon+1, Px1, Py1, can_puntos)
-
-            elif letra == 'f' or letra == 'F':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon+1, Px1, Py1, can_puntos)
-
-            elif letra == 'g' or letra == 'G':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 'h' or letra == 'H':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 'i' or letra == 'I':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-
-            elif letra == 'j' or letra == 'J':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 'k' or letra == 'K':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon, lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon, -lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon, -lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                
-            elif letra == 'l' or letra == 'L':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                
-            elif letra == 'm' or letra == 'M':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2, -lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2, lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                
-            elif letra == 'n' or letra == 'N' or letra == 'ñ' or letra == 'Ñ':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon, -lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                
-            elif letra == 'o' or letra == 'O':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon+1, Px1, Py1, can_puntos)
-         
-            elif letra == 'p' or letra == 'P':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon+1, Px1, Py1, can_puntos)     
-
-            elif letra == 'q' or letra == 'Q':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon/2,lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2,-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 'r' or letra == 'R':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2,-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 's' or letra == 's':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 't' or letra == 'T':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon/2, Px1, Py1, can_puntos)
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_horizontal(-lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                
-            elif letra == 'u' or letra == 'U':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 'v' or letra == 'V':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon/2, lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2, -lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2, lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon/2, -lon, Px1, Py1, can_puntos)
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 'w' or letra == 'W':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2, lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2, -lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_vertical(-lon, Px1, Py1, can_puntos)
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 'x' or letra == 'X':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_diagonal(lon, lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon/2, -lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon/2, lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon, -lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon/2, Px1, Py1, can_puntos)
-
-            elif letra == 'y' or letra == 'Y':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_diagonal(lon, lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon/2, -lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon/2, lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(lon/2, -lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon/2, -lon/2, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon+1, Px1, Py1, can_puntos)           
-
-            elif letra == 'z' or letra == 'Z':
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_diagonal(lon, lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(-lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_horizontal(lon, Px1, Py1, can_puntos)
-                Px1 = Pxf
-                Py1 = Pyf
-                Pxf, Pyf = linea_diagonal(-lon, -lon, Px1, Py1, can_puntos)
-                Px1 = Px
-                Py1 = Py
-                Pxf, Pyf = linea_horizontal(lon+1, Px1, Py1, can_puntos)
-
-            #Retorno de donde quedan las coordenadas
-            return Pxf, Pyf
-        
-        #Funcion Interna para lineas verticales
-        def linea_vertical(lon, Px1, Py1, can_puntos):
-            Pxf = Px1
-            Pyf = Py1 + lon
-
-            Px7_Pxf = Pxf
-            Py7_Pyf = np.linspace(Py1, Pyf, can_puntos)
-
-            for i in range(can_puntos):
-                theta1, theta2 = self.CI(Px7_Pxf, Py7_Pyf[i])
-                MTH = self.CD(theta1, theta2)
-                self.mover_servos(theta1, theta2)
-            
-            #Retorno
-            return Pxf, Pyf
-        
-        #Funcion Interna para lineas horizontales
-        def linea_horizontal(lon, Px1, Py1, can_puntos):
-            Pxf = Px1 + lon
-            Pyf = Py1 
-
-            Px7_Pxf = np.linspace(Px1, Pxf, can_puntos)
-            Py7_Pyf = Pyf
-
-            for i in range(can_puntos):
-                theta1, theta2 = self.CI(Px7_Pxf[i], Py7_Pyf)
-                MTH = self.CD(theta1, theta2)
-                self.mover_servos(theta1, theta2)
-            
-            #Retorno
-            return Pxf, Pyf
-        
-        #Funcion Interna para lineas horizontales
-        def linea_diagonal(lonx, lony, Px1, Py1, can_puntos):
-            Pxf = Px1 + lonx
-            Pyf = Py1 + lony
-
-            Px7_Pxf = np.linspace(Px1, Pxf, can_puntos)
-            Py7_Pyf = np.linspace(Py1, Pyf, can_puntos)
-
-            for i in range(can_puntos):
-                theta1, theta2 = self.CI(Px7_Pxf[i], Py7_Pyf[i])
-                MTH = self.CD(theta1, theta2)
-                self.mover_servos(theta1, theta2)
-            
-            #Retorno
-            return Pxf, Pyf
-
-        #Cantidad de puntos para que llegue a coordenadas iniciales para escribir
-        can_puntos = 5
-
-        #Punto Iniciales
-        Px1 = self.pxInicial
-        Py1 = self.pxInicial
-        theta1_P1, theta2_P1 = self.CI(Px1, Py1)
-
-        #Coordenadas donde se comienza a escribir
-        Px2 = -13
-        Py2 = 11
-        theta1_P2, theta2_P2 = self.CI(Px2, Py2)
-
-        theta1P1_P2 = np.linspace(theta1_P1, theta1_P2, can_puntos)
-        theta2P1_P2 = np.linspace(theta2_P1, theta2_P2, can_puntos)
-
-        for i in range(can_puntos):
-            MTH = self.CD(theta1P1_P2[i], theta2P1_P2[i])
-            self.mover_servos(theta1P1_P2[i], theta2P1_P2[i])
-
-        #Esto es para que se guarden las ultimas coordenadas en pxInicial y pyInicial
-        self.pxInicial = Px2
-        self.pyInicial = Py2
-
-        if len(palabra)<=9:
-            for i in range(len(palabra)):
-                Pxf, Pyf = abecedario(palabra[i], self.pxInicial, self.pyInicial)
-                self.pxInicial = Pxf
-                self.pyInicial = Pyf
-
-        #Cuando la palabra es muu extensa        
-        else:
-            print("La palabra o nombre excede los 9 caracteres")
-
-    def imagenes(self, opcion):
-        puntos = 3 #De a cada cuantos puntos se guarda
         #FIGURA 1 Hyundai
         if opcion == 1:
             #Leer la imagen en formato cv2
@@ -849,49 +239,181 @@ class Robot:
             # Seleccionar cada n elemento y agregar el ultimo punto
             contorno5 = np.vstack([contorno5[0::puntos], contorno5[-1]])
 
-            #CREO QUE ESTO NO IMPORTA (PROBAR)
-            # #Puntos iniciales
-            # Px1 = self.pxInicial
-            # Py1 = self.pyInicial
-            # theta1_P1, theta2_P1 = self.CI(Px1, Py1)
+            #Puntos iniciales para Contorno 1 (Cremallera)
+            Px1 = self.pxInicial
+            Py1 = self.pyInicial
+            Pz1 = self.arrriba_cor
+            theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
 
-            # Px2 = contorno1[-1,0]
-            # Py2 = contorno1[-1,1]
-            # theta1_P2, theta2_P2 = self.CI(Px2, Py2)
+            Px2 = contorno1[0,0]
+            Py2 = contorno1[0,1]
+            Pz2 = self.arrriba_cor
+            theta1_P2,theta2_P2,theta3_P2 = self.CI(Px2,Py2,Pz2)
 
-            # theta1P1_P2 = np.linspace(theta1_P1, theta1_P2, 1)
-            # theta2P1_P2 = np.linspace(theta2_P1, theta2_P2, 1)
+            theta1P1_P2 = np.linspace(theta1_P1,theta1_P2,can_puntos)
+            theta2P1_P2 = np.linspace(theta2_P1,theta2_P2,can_puntos)
+        
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+            self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
 
-            # for i in range(len(theta1P1_P2)):
-            #     MTH = self.CD(theta1P1_P2[i], theta2P1_P2[i]) 
-            #     kit.servo[0].angle= (theta1P1_P2[i]) #Servo 1
-            #     kit.servo[1].angle= (theta2P1_P2[i]) #Servo 2
-
+            for i in range(len(can_puntos)):
+                MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+                self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+                if i == len(can_puntos) - 1:
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    
             #AHORA SI DIBUJAR CONTORNOS
             #CONTORNO 1
             for i in range(len(contorno1)):
-                theta1, theta2 = self.CI(contorno1[i][0],contorno1[i][1])
-                MTH = self.CD(theta1, theta2) 
-                self.mover_servos(theta1, theta2)
+                theta1,theta2,theta3 = self.CI(contorno1[i][0],contorno1[i][1],self.abajo)
+                MTH = self.CD(theta1,theta2,theta3) 
+                self.mover_servos(theta1,theta2,theta3)
+                if i == len(contorno1) - 1:
+                    #Guardar ultimas coordenadas
+                    self.pxInicial = MTH.t[0]
+                    self.pyInicial = MTH.t[1]
+                    self.pzInicial = self.abajo
 
+            #Puntos iniciales para Contorno 2 (Cremallera)
+            Px1 = self.pxInicial
+            Py1 = self.pyInicial
+            Pz1 = self.arrriba_cor
+            theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
+
+            Px2 = contorno2[0,0]
+            Py2 = contorno2[0,1]
+            Pz2 = self.arrriba_cor
+            theta1_P2,theta2_P2,theta3_P2 = self.CI(Px2,Py2,Pz2)
+
+            theta1P1_P2 = np.linspace(theta1_P1,theta1_P2,can_puntos)
+            theta2P1_P2 = np.linspace(theta2_P1,theta2_P2,can_puntos)
+            
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+            self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
+
+            for i in range(len(can_puntos)):
+                MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+                self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+                if i == len(can_puntos) - 1:
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+            
             #CONTORNO 2
             for i in range(len(contorno2)):
-                theta1, theta2 = self.CI(contorno2[i][0],contorno2[i][1])
-                MTH = self.CD(theta1, theta2)
-                self.mover_servos(theta1, theta2) 
+                theta1,theta2,theta3= self.CI(contorno2[i][0],contorno2[i][1],self.abajo)
+                MTH = self.CD(theta1,theta2,theta3)
+                self.mover_servos(theta1,theta2,theta3) 
+                if i == len(contorno2) - 1:
+                    #Guardar ultimas coordenadas
+                    self.pxInicial = MTH.t[0]
+                    self.pyInicial = MTH.t[1]
+                    self.pzInicial = self.abajo
+                    
+            #Puntos iniciales para Contorno 3 (Cremallera)
+            Px1 = self.pxInicial
+            Py1 = self.pyInicial
+            Pz1 = self.arrriba_cor
+            theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
+
+            Px2 = contorno3[0,0]
+            Py2 = contorno3[0,1]
+            Pz2 = self.arrriba_cor
+            theta1_P2,theta2_P2,theta3_P2 = self.CI(Px2,Py2,Pz2)
+
+            theta1P1_P2 = np.linspace(theta1_P1,theta1_P2,can_puntos)
+            theta2P1_P2 = np.linspace(theta2_P1,theta2_P2,can_puntos)
+            
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+            self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
+
+            for i in range(len(can_puntos)):
+                MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+                self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+                if i == len(can_puntos) - 1:
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
 
             #CONTORNO 3
             for i in range(len(contorno3)):
-                theta1, theta2 = self.CI(contorno3[i][0],contorno3[i][1])
-                MTH = self.CD(theta1, theta2) 
-                self.mover_servos(theta1, theta2)
+                theta1,theta2,theta3 = self.CI(contorno3[i][0],contorno3[i][1],self.abajo)
+                MTH = self.CD(theta1,theta2,theta3) 
+                self.mover_servos(theta1,theta2,theta3)
+                if i == len(contorno3) - 1:
+                    #Guardar ultimas coordenadas
+                    self.pxInicial = MTH.t[0]
+                    self.pyInicial = MTH.t[1]
+                    self.pzInicial = self.abajo
+                    
+            #Puntos iniciales para Contorno 4 (Cremallera)
+            Px1 = self.pxInicial
+            Py1 = self.pyInicial
+            Pz1 = self.arrriba_cor
+            theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
+
+            Px2 = contorno4[0,0]
+            Py2 = contorno4[0,1]
+            Pz2 = self.arrriba_cor
+            theta1_P2,theta2_P2,theta3_P2 = self.CI(Px2,Py2,Pz2)
+
+            theta1P1_P2 = np.linspace(theta1_P1,theta1_P2,can_puntos)
+            theta2P1_P2 = np.linspace(theta2_P1,theta2_P2,can_puntos)
+            
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+            self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
+
+            for i in range(len(can_puntos)):
+                MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+                self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+                if i == len(can_puntos) - 1:
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
 
             #CONTORNO 4
             for i in range(len(contorno4)):
-                theta1, theta2 = self.CI(contorno4[i][0],contorno4[i][1])
-                MTH = self.CD(theta1, theta2) 
-                self.mover_servos(theta1, theta2)
+                theta1,theta2,theta3 = self.CI(contorno4[i][0],contorno4[i][1],self.abajo)
+                MTH = self.CD(theta1,theta2,theta3) 
+                self.mover_servos(theta1,theta2,theta3)
+                if i == len(contorno4) - 1:
+                    #Guardar ultimas coordenadas
+                    self.pxInicial = MTH.t[0]
+                    self.pyInicial = MTH.t[1]
+                    self.pzInicial = self.abajo
 
+            #Puntos iniciales para Contorno 5 (Cremallera)
+            Px1 = self.pxInicial
+            Py1 = self.pyInicial
+            Pz1 = self.arrriba_cor
+            theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
+
+            Px2 = contorno5[0,0]
+            Py2 = contorno5[0,1]
+            Pz2 = self.arrriba_cor
+            theta1_P2,theta2_P2,theta3_P2 = self.CI(Px2,Py2,Pz2)
+
+            theta1P1_P2 = np.linspace(theta1_P1,theta1_P2,can_puntos)
+            theta2P1_P2 = np.linspace(theta2_P1,theta2_P2,can_puntos)
+            
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+            self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
+
+            for i in range(len(can_puntos)):
+                MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+                self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+                if i == len(can_puntos) - 1:
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+            
             #CONTORNO 5
             for i in range(len(contorno5)):
                 theta1, theta2 = self.CI(contorno5[i][0],contorno5[i][1])
@@ -899,10 +421,11 @@ class Robot:
                 self.mover_servos(theta1, theta2)
                 #Ultima Iteracion
                 if i == len(contorno5) - 1: 
-                    #Guardar ultimas coordenadas, para el siguiente metodo
+                    #Guardar ultimas coordenadas
                     self.pxInicial = MTH.t[0]
                     self.pyInicial = MTH.t[1] 
-         
+                    self.pzInicial = self.abajo
+    
         #FIGURA 2 Chevrolet
         elif opcion == 2:
             #Leer la imagen en formato cv2
@@ -931,24 +454,82 @@ class Robot:
             # Seleccionar cada n elemento y agregar el ultimo punto
             contorno2 = np.vstack([contorno2[0::puntos], contorno2[-1]])
 
+            #Puntos iniciales para Contorno 1 (Cremallera)
+            Px1 = self.pxInicial
+            Py1 = self.pyInicial
+            Pz1 = self.arrriba_cor
+            theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
+
+            Px2 = contorno1[0,0]
+            Py2 = contorno1[0,1]
+            Pz2 = self.arrriba_cor
+            theta1_P2, theta2_P2, theta3_P2 = self.CI(Px2,Py2,Pz2)
+
+            theta1P1_P2 = np.linspace(theta1_P1,theta1_P2,can_puntos)
+            theta2P1_P2 = np.linspace(theta2_P1,theta2_P2,can_puntos)
+            
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+            self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
+
+            for i in range(can_puntos):
+                MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+                self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+                if i == can_puntos - 1:
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+            
             #AHORA SI DIBUJAR CONTORNOS
             #CONTORNO 1
             for i in range(len(contorno1)):
-                theta1, theta2 = self.CI(contorno1[i][0],contorno1[i][1])
-                MTH = self.CD(theta1, theta2) 
-                self.mover_servos(theta1, theta2)
-
-            #CONTORNO 2
-            for i in range(len(contorno2)):
-                theta1, theta2 = self.CI(contorno2[i][0],contorno2[i][1])
-                MTH = self.CD(theta1, theta2) 
-                self.mover_servos(theta1, theta2)
-                #Ultima Iteracion
-                if i == len(contorno2) - 1: 
-                    #Guardar ultimas coordenadas, para el siguiente metodo
+                theta1,theta2,theta3 = self.CI(contorno1[i][0],contorno1[i][1],self.abajo)
+                MTH = self.CD(theta1,theta2,theta3) 
+                self.mover_servos(theta1,theta2,theta3)
+                if i == len(contorno1) - 1: 
+                    #Guardar ultimas coordenadas
                     self.pxInicial = MTH.t[0]
                     self.pyInicial = MTH.t[1]
-                    
+                    self.pzInicial = self.abajo
+
+            #Puntos iniciales para Contorno 2 (Cremallera)
+            Px1 = self.pxInicial
+            Py1 = self.pyInicial
+            Pz1 = self.arrriba_cor
+            theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
+
+            Px2 = contorno2[0,0]
+            Py2 = contorno2[0,1]
+            Pz2 = self.arrriba_cor
+            theta1_P2,theta2_P2,theta3_P2 = self.CI(Px2,Py2,Pz2)
+
+            theta1P1_P2 = np.linspace(theta1_P1,theta1_P2,can_puntos)
+            theta2P1_P2 = np.linspace(theta2_P1,theta2_P2,can_puntos)
+            
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+            self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
+
+            for i in range(can_puntos):
+                MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+                self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+                if i == can_puntos - 1:
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+            
+            #CONTORNO 2
+            for i in range(len(contorno2)):
+                theta1,theta2,theta3 = self.CI(contorno2[i][0],contorno2[i][1],self.abajo)
+                MTH = self.CD(theta1,theta2,theta3) 
+                self.mover_servos(theta1,theta2,theta3)
+                #Ultima Iteracion
+                if i == len(contorno2) - 1: 
+                    #Guardar ultimas coordenadas
+                    self.pxInicial = MTH.t[0]
+                    self.pyInicial = MTH.t[1]
+                    self.pzInicial = self.abajo
+        
         #FIGURA 3 Tesla
         elif opcion == 3:
             #Leer la imagen en formato cv2
@@ -977,51 +558,125 @@ class Robot:
             # Seleccionar cada n elemento y agregar el ultimo punto
             contorno2 = np.vstack([contorno2[0::puntos], contorno2[-1]])
 
+            #Puntos iniciales para Contorno 1 (Cremallera)
+            Px1 = self.pxInicial
+            Py1 = self.pyInicial
+            Pz1 = self.arrriba_cor
+            theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
+
+            Px2 = contorno1[0,0]
+            Py2 = contorno1[0,1]
+            Pz2 = self.arrriba_cor
+            theta1_P2,theta2_P2,theta3_P2 = self.CI(Px2,Py2,Pz2)
+
+            theta1P1_P2 = np.linspace(theta1_P1,theta1_P2,can_puntos)
+            theta2P1_P2 = np.linspace(theta2_P1,theta2_P2,can_puntos)
+            
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+            self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
+
+            for i in range(len(can_puntos)):
+                MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+                self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+                if i == len(can_puntos) - 1:
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+
             #AHORA SI DIBUJAR CONTORNOS
             #CONTORNO 1
             for i in range(len(contorno1)):
-                theta1, theta2 = self.CI(contorno1[i][0],contorno1[i][1])
-                MTH = self.CD(theta1, theta2) 
-                self.mover_servos(theta1, theta2)
+                theta1,theta2,theta3 = self.CI(contorno1[i][0],contorno1[i][1],self.abajo)
+                MTH = self.CD(theta1,theta2,theta3) 
+                self.mover_servos(theta1,theta2,theta3)
+                if i == len(contorno1) - 1: 
+                    #Guardar ultimas coordenadas
+                    self.pxInicial = MTH.t[0]
+                    self.pyInicial = MTH.t[1]
+                    self.pzInicial = self.abajo
+
+            #Puntos iniciales para Contorno 2 (Cremallera)
+            Px1 = self.pxInicial
+            Py1 = self.pyInicial
+            Pz1 = self.arrriba_cor
+            theta1_P1,theta2_P1,theta3_P1 = self.CI(Px1,Py1,Pz1)
+
+            Px2 = contorno2[0,0]
+            Py2 = contorno2[0,1]
+            Pz2 = self.arrriba_cor
+            theta1_P2,theta2_P2,theta3_P2 = self.CI(Px2,Py2,Pz2)
+
+            theta1P1_P2 = np.linspace(theta1_P1,theta1_P2,can_puntos)
+            theta2P1_P2 = np.linspace(theta2_P1,theta2_P2,can_puntos)
+            
+            # Subir Cremallera
+            MTH = self.CD(theta1P1_P2[0],theta2P1_P2[0],theta3_P1) 
+            self.mover_servos(theta1P1_P2[0],theta2P1_P2[0],theta3_P1)
+
+            for i in range(len(can_puntos)):
+                MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],theta3_P1) 
+                self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],theta3_P1)
+                if i == len(can_puntos) - 1:
+                    # Bajar Cremallera
+                    MTH = self.CD(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
+                    self.mover_servos(theta1P1_P2[i],theta2P1_P2[i],self.abajo)
 
             #CONTORNO 2
             for i in range(len(contorno2)):
-                theta1, theta2 = self.CI(contorno2[i][0],contorno2[i][1])
-                MTH = self.CD(theta1, theta2) 
-                self.mover_servos(theta1, theta2)
+                theta1,theta2,theta3 = self.CI(contorno2[i][0],contorno2[i][1],self.abajo)
+                MTH = self.CD(theta1,theta2,theta3) 
+                self.mover_servos(theta1,theta2,theta3)
                 #Ultima Iteracion
                 if i == len(contorno2) - 1: 
-                    #Guardar ultimas coordenadas, para el siguiente metodo
+                    #Guardar ultimas coordenadas
                     self.pxInicial = MTH.t[0]
                     self.pyInicial = MTH.t[1]
-    
+                    self.pzInicial = self.abajo
+                    
     #Cinematica Directa (Angulos a Coordenadas)
-    def CD(self, theta1, theta2):
-        q = np.array([theta1, theta2])
+    def CD(self,theta1,theta2,theta_cre):
+        theta_cre = math.degrees(theta_cre)
+        d3 = theta_cre/50 # Convertir theta_cre en un movimeinto lineal
+        
+        q = np.array([theta1,theta2,d3])
 
         robot = SerialLink([
             RevoluteDH(d=0, alpha=0, a=self.l1, offset=0),
-            RevoluteDH(d=0, alpha=0, a=self.l2, offset=0)
-        ], name= self.nombre)   
+            RevoluteDH(d=0, alpha=0, a=self.l2, offset=0),
+            PrismaticDH(theta=0, a=0, alpha=np.pi, offset=0)
+        ], name=self.nombre)   
         # Visualizar el robot, con sus limites 
-        robot.plot(q, limits= [-25, 25, -25, 25, 0, 5])
+        robot.plot(q, limits=[-25, 25, -25, 25, -3, 3])
         
         MTH = robot.fkine(q)
         return MTH
-
+    
     #Cinematica Inversa (Coordenadas a Angulos)
-    def CI(self, px, py):
+    def CI(self,px,py,pz):
+        h1 = 5
+        l3 = 5
+        
+        # Theta2
         b = np.sqrt(px**2 + py**2)
         cos_theta2 = (b**2-self.l2**2-self.l1**2)/(2*self.l2*self.l1)
         sen_theta2 = np.sqrt(1 - cos_theta2**2)
         theta2 = np.arctan2(sen_theta2, cos_theta2)
-        print(f'Theta2 = {np.degrees(theta2):.3f} grados')
-        # Calcular alpha y phi para theta1
+        # print(f'Theta2 = {np.degrees(theta2):.3f} grados')
+        
+        # Theta1
         alpha = np.arctan2(py,px)
         phi = np.arctan2(self.l2 * sen_theta2, self.l1 + self.l2 * cos_theta2)
         # Calcular theta1
         theta1 = alpha - phi
         theta1 = theta1 + 2 * np.pi if theta1 <= -np.pi else theta1 #Otra forma de hacer el if
-        print(f'Theta1 = {np.degrees(theta1):.3f} grados')
+        # print(f'Theta1 = {np.degrees(theta1):.3f} grados')
+        
+        # d3
+        d3 = -1 * (h1 - l3 - pz)
+        theta_cre = d3 * 50
+        # print(f'Theta3 = {theta_cre:.3f} grados')
+        theta_cre = math.radians(theta_cre)
+        
         #Retorno
-        return theta1,theta2
+        return theta1,theta2,theta_cre

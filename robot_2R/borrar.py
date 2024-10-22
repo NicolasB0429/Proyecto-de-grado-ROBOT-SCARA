@@ -1,7 +1,7 @@
 from clase_robot import Robot
 
 # Crear una instancia de Robot 
-Robot_2R = Robot(nombre="Hacker", l1=10, l2=10, pxInicial=0, pyInicial=0)
+Robot_2R = Robot(nombre="Hacker", l1=10, l2=10, pxInicial=20, pyInicial=0,pzInicial=0)
 
 # Definir una funcion que llame a Robot_2R.coordenadas con los valores actuales de x e y
 def enviar_coordenadas():
