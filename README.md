@@ -5,7 +5,7 @@ Universidad Ecci 🏫</h1><br>
 
 ## Descripción 📝
 <div style="text-align: justify;">
-Se desarrolla el brazo robótico SCARA de 3 grados de libertad (3GDL), programado en Python. El sistema cuenta con 4 modos de operación: el primero ejecuta una trayectoria basada en las coordenadas proporcionadas por el usuario, el segundo traza el área de trabajo del robot, el tercero permite escribir caracteres alfanuméricos, y el último realiza un reconocimiento de imágenes en tiempo real para el trazo de contornos detectados. Además, ofrece la opción de reemplazar la Cinemática Inversa por un modelo de Red Neuronal.
+Se desarrolla el brazo robótico SCARA de 3 grados de libertad (3GDL), programado en Python. El sistema cuenta con 2 modos de operación: el priero permite escribir caracteres alfanuméricos, y el segundo realiza un reconocimiento de imágenes en tiempo real para el trazo de contornos detectados. Además, ofrece la opción de reemplazar la Cinemática Inversa por un modelo de Red Neuronal.
 </div>
 
 ## Materiales 🛠️
@@ -17,8 +17,8 @@ Se desarrolla el brazo robótico SCARA de 3 grados de libertad (3GDL), programad
 
 ## Software y Librerías 💻
 ### Software Utilizado
-- **Python** `3.x`: Lenguaje de programación para controlar el brazo robótico SCARA.
-- **Raspberry Pi OS**: Sistema operativo utilizado en la Raspberry Pi.
+- **Python** `3.11.2`: Lenguaje de programación para controlar el brazo robótico SCARA.
+- **Debian GNU/Linux**: Sistema operativo utilizado en la Raspberry Pi.
 
 ### Librerías de Python
 - **NumPy**: Operaciones numéricas y cálculos matriciales.
