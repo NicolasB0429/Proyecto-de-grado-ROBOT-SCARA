@@ -166,7 +166,7 @@ class Robot:
         
         self.canvas_grafica.limpiar_trayectoria()
         # Cargar variables desde el archivo .mat
-        contorno = loadmat('robot_2R/contorno.mat')
+        contorno = loadmat('robot_Scara/contorno.mat')
         # Acceder a las variables cargadas
         x1y1 = contorno['x1y1']
         x2y2 = contorno['x2y2']
@@ -320,7 +320,7 @@ class Robot:
         #FIGURA 1 Hyundai
         if opcion == 1:
             #Leer la imagen en formato cv2
-            imagen = cv2.imread('robot_2R/imagenes/hyundai.png')
+            imagen = cv2.imread('robot_Scara/imagenes/hyundai.png')
             # Convertir la imagen a escala de grises
             img_gris = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
             # Aplicar suavizado Gaussiano (filtro) Imagen Filtrada
@@ -378,7 +378,7 @@ class Robot:
         #FIGURA 2 Chevrolet
         elif opcion == 2:
             #Leer la imagen en formato cv2
-            imagen = cv2.imread('robot_2R/imagenes/chevrolet.png')
+            imagen = cv2.imread('robot_Scara/imagenes/chevrolet.png')
 
             # Convertir la imagen a escala de grises
             img_gris = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
@@ -440,7 +440,7 @@ class Robot:
         #FIGURA 3 Tesla
         elif opcion == 3:
             #Leer la imagen en formato cv2
-            imagen = cv2.imread('robot_2R/imagenes/tesla.png')
+            imagen = cv2.imread('robot_Scara/imagenes/tesla.png')
 
             # Convertir la imagen a escala de grises
             img_gris = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)

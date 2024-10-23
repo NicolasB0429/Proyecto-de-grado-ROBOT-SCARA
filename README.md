@@ -33,7 +33,15 @@ Se desarrolla el brazo robótico SCARA de 3 grados de libertad (3GDL), programad
 ### Herramientas y Plataformas
 - **Google Colab**: Plataforma en la nube utilizada para desarrollar y entrenar el modelo de red neuronal.
 
-## Planos del Proyecto 📐
-Este proyecto incluye archivos de diseño CAD que representan los planos del brazo robótico SCARA.
+## PDF 📚
+- **Datasheet PCA9685**: [Descargar](PDFs/datasheet_PCA9685.pdf)
+
+## Planos CAD SolidWorks 📐
+- **Base:** [Descargar](planos/Base.SLDPRT)
+- **Eslabon 1:** [Descargar](planos/Eslabon1_V4.2.SLDPRT)
+- **Eslabon 2:** [Descargar](planos/Eslabon2_V4.2.SLDPRT)
+- **Piñon:** [Descargar](engranaje/Eslabon2.SLDPRT)
+- **Cremallera:** [Descargar](planos/CremalleraLapiz.SLDPRT)
+- **Todos los planos:** [Planos](planos)
 
 ## Resultados ☑️

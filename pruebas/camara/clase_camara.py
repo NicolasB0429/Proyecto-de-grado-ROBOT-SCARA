@@ -14,20 +14,20 @@ class Camara(QWidget):
         # qlabel para visualizar la camara
         self.preview_label = camara_label
         
-      # Inicializar la cï¿½mara sin iniciar aï¿½n
+      # Inicializar la camara sin iniciar aún
         self.picam2 = Picamera2()
 
-        # Intentar detener la cï¿½mara si estï¿½ en funcionamiento
+        # Intentar detener la camara si esta en funcionamiento
         if self.picam2.camera_config:
             self.picam2.stop()
 
-        # Obtener los modos de la cï¿½mara
+        # Obtener los modos de la camara
         config = self.picam2.create_still_configuration(main={"size": self.picam2.sensor_resolution})
 
-        # Configurar la cï¿½mara con la mï¿½xima resoluciï¿½n disponible
+        # Configurar la camara con la maxima resolución disponible
         self.picam2.configure(config)
 
-        # Iniciar la cï¿½mara despuï¿½s de configurarla
+        # Iniciar la camara despues de configurarla
         self.picam2.start()
 
         # Configuraracion temporsizador
@@ -57,7 +57,7 @@ class Camara(QWidget):
         # Convertir QImage a QPixmap para mostrar en el QLabel
         qt_image = QPixmap.fromImage(q_image)
 
-        # Redimensionar el QPixmap al tamaï¿½o del QLabel
+        # Redimensionar el QPixmap al tamaño del QLabel
         qt_image = qt_image.scaled(self.preview_label.width(), self.preview_label.height(), QtCore.Qt.KeepAspectRatio)
 
         # Mostrar la imagen redimensionada en el QLabel
