@@ -46,4 +46,38 @@ Popayán, Colombia: Universidad Unicomfacauca.
 DOI: [https://doi.org/10.57173/ritc.v1n17a12](https://doi.org/10.57173/ritc.v1n17a12)
 
 ## Resultados ☑️
+### Robot 2R:
+<p align="center">
+    <img src="img/robot.png" alt="Robot" width="400" />
+</p>
 
+### Seguimiento a Coordenadas:
+<p align="center">
+    <img src="img/coordenadas.png" alt="Coordenadas" width="400" />
+</p>
+
+### Espacio de Trabajo:
+<p align="center">
+    <img src="img/espacio_de_trabajo.png" alt="Espacio de trabajo" width="400" />
+</p>
+
+### Escritura de caracteres:
+<p align="center">
+    <img src="img/nombre.png" alt="Angie" width="400" />
+</p>
+
+
+### Trazo imagen sección horizontal:
+<p align="center">
+    <img src="img/img_chevrolet.png" alt="Chevrolet" width="400" />
+</p>
+
+### Trazo imagen sección cuadrada:
+<p align="center">
+    <img src="img/img_apple.png" alt="Apple" width="400" />
+</p>
+
+### Trazo imagen sección vertical:
+<p align="center">
+    <img src="img/img_tesla.png" alt="Tesla" width="400" />
+</p>
