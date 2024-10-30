@@ -14,7 +14,7 @@ class Camara(QWidget):
         # qlabel para visualizar la camara
         self.preview_label = camara_label
         
-      # Inicializar la camara sin iniciar aún
+      # Inicializar la camara sin iniciarla aún
         self.picam2 = Picamera2()
 
         # Intentar detener la camara si esta en funcionamiento

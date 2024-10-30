@@ -1,7 +1,9 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel
 from interfaz import Ui_MainWindow
-from clase_robot import Robot, CanvasGrafica
+from clase_robot import Robot, CanvasGrafica, Camara
+from PyQt5.QtGui import QPixmap, QImage
 
 # Crear la aplicación y el widget
 app = QApplication(sys.argv)
@@ -10,39 +12,43 @@ ui = Ui_MainWindow()
 ui.setupUi(Form)
 
 # Crear las instancias de CanvasGrafica
-canvas_grafica = CanvasGrafica(parent=Form)
-canvas_robot = CanvasGrafica(parent=Form)
+grafica_robot_nombre = CanvasGrafica(opcion=1,parent=Form)
+grafica_robot_camara = CanvasGrafica(opcion=1,parent=Form)
+grafica_camara = CanvasGrafica(opcion=2,parent=Form)
+# Toca colocar el Qlabel para la camara
+grafica_camara = QLabel()
+
+# Ajustar tamaño y envia imagen
+grafica_camara.setFixedSize(300, 300)
+pixmap = QPixmap("imagenes/camara.png")
+grafica_camara.setPixmap(pixmap)
+grafica_camara.setScaledContents(True)
 
 # Añadir los canvases a los layouts correspondientes
-ui.verticalLayout_grafica.addWidget(canvas_grafica)
-ui.verticalLayout_robot.addWidget(canvas_robot)
+ui.verticalLayout_grafica.addWidget(grafica_robot_nombre)
+ui.layaout_grafica_camara.addWidget(grafica_robot_camara)
+ui.layout_camara.addWidget(grafica_camara)
+
+# Inicializar la clase Camara y pasarle el QLabel como argumento
+camara = Camara(grafica_camara)
+
 
 # Crear una instancia de Robot 
-Robot_2R = Robot(
+robot_scara = Robot(
     nombre="Hacker", 
     l1=10, 
     l2=10, 
     pxInicial=20, 
     pyInicial=0, 
     pzInicial=0, 
-    canvas_grafica=canvas_grafica, 
-    canvas_robot=canvas_robot
+    grafica_robot_nombre=grafica_robot_nombre, 
+    grafica_robot_camara=grafica_robot_camara
 )
 
-# Definir una función que llame a Robot_2R.coordenadas con los valores actuales de x e y
-def enviar_coordenadas():
-    x_str = ui.coor_x.toPlainText()
-    y_str = ui.coor_y.toPlainText()
-    x_formateado = "{:.2f}".format(float(x_str))
-    y_formateado = "{:.2f}".format(float(y_str))
-    x = float(x_formateado)
-    y = float(y_formateado)
-    Robot_2R.coordenadas(x, y)
-       
-# Definir una función que llame a Robot_2R.palabra con los caracteres
+# Definir una función que llame a robot_scara.palabra con los caracteres
 def enviar_palabra():
     palabra = ui.txt_nombre.toPlainText()
-    Robot_2R.palabra(palabra)
+    robot_scara.palabra(palabra)
 
 # Función para cerrar la aplicación
 def cerrar_aplicacion():
@@ -60,16 +66,24 @@ def minimizar_ventana():
 def restaurar_ventana():
     Form.showNormal()
 
-# COORDENADAS
-ui.aceptar_coor.clicked.connect(enviar_coordenadas)
-# ESPACIO DE TRABAJO
-ui.aceptar_areatrabajo.clicked.connect(Robot_2R.esp_trabajo)
-# NOMBRE O CARACTERES
+def cambiar_pagina(index):
+    print(f"Índice seleccionado: {index}, Texto de la sección: {ui.toolBox.itemText(index)}")
+    if ui.toolBox.itemText(index) == "Nombre":
+        ui.stackedWidget.setCurrentIndex(0)
+    elif ui.toolBox.itemText(index) == "Camara":
+        ui.stackedWidget.setCurrentIndex(1)
+    else:
+        print("Sección no reconocida.")
+
+# Funcion para poder cambiar la pagina, depediendo que escoja
+ui.toolBox.currentChanged.connect(cambiar_pagina)
+
 ui.aceptar_Nombre.clicked.connect(enviar_palabra)
-# IMAGENES
-ui.hyundai.clicked.connect(lambda: Robot_2R.imagenes(1))
-ui.chevrolet.clicked.connect(lambda: Robot_2R.imagenes(2))
-ui.Tesla.clicked.connect(lambda: Robot_2R.imagenes(3))
+ui.Iniciar_Camara.clicked.connect(camara.inicializar_camara)
+ui.Detener_Camara.clicked.connect(camara.detener_camara)
+ui.Tomar_Foto.clicked.connect(camara.capturar_imagen)
+ui.Contornos.clicked.connect(camara.contorno)
+ui.Realizar_Dibujo.clicked.connect(robot_scara.imagen_camara)
 
 # Conectar los botones de control de ventana
 ui.btn_cerrar.clicked.connect(cerrar_aplicacion)
@@ -80,3 +94,4 @@ ui.btn_restaurar.clicked.connect(restaurar_ventana)
 # Mostrar el widget y ejecutar la aplicación
 Form.show()
 sys.exit(app.exec_())
+
