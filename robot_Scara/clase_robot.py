@@ -1,32 +1,43 @@
+# Librerías estándar
 import time
+import math
+import sys
+import io
+import os #Para trabajar con rutas relativas
+
+# Configuración inicial (Para la Red)
+sys.stdout.reconfigure(encoding='utf-8')
+
+# Librerías científicas y de procesamiento de datos
+import numpy as np
+
+# Librerías de gráficos
 import matplotlib
 matplotlib.use('Qt5Agg')
-import io
-import sys
-import math
-import numpy as np
+
+import matplotlib.pyplot as plt  # Para plotear
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
+# Librerías de visión por computador
+import cv2  # Para generar contornos en imágenes
+from PIL import Image  # Maneja imágenes y realiza conversiones
+
+# Librerías de robótica
 import roboticstoolbox as rtb
 from roboticstoolbox import RevoluteDH, PrismaticDH, SerialLink
-import matplotlib.pyplot as plt #Para plotear
-from scipy.io import loadmat #Cargar .mat
-import cv2 #Para generar contornos imagenes
-#Graficar
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5.QtWidgets import QSizePolicy
-#animacion
-from PyQt5.QtCore import QTimer
-#camara
-from PIL import Image
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
-import os
-from PyQt5.QtWidgets import QWidget, QLabel
+# Librerías de PyQt5 para la interfaz gráfica
+from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import QTimer
-from picamera2 import Picamera2 # Maneja la camara
-from PIL import Image # Maneja imagenes y realiza conversiones
-import numpy as np
+from PyQt5.QtCore import QTimer, Qt
 from PyQt5 import QtCore
+
+# Librerías para manejar la cámara
+from picamera2 import Picamera2  # Maneja la cámara
+import joblib
+
+# Librerías de redes neuronales
+import tensorflow as tf
 
 #Servos
 from adafruit_servokit import ServoKit
@@ -38,14 +49,10 @@ kit.servo[0].set_pulse_width_range(600, 2500)
 kit.servo[1].set_pulse_width_range(600, 2500)
 kit.servo[2].set_pulse_width_range(600, 2500)
 
-import cv2
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtCore import QTimer, Qt
-
 class Camara(QWidget):
     def __init__(self, camara_label, parent=None):
         super().__init__(parent)
-    # Asegurarte de que preview_label es un QLabel
+        # Asegurarte de que preview_label es un QLabel
         # self.preview_label = QLabel(camara_label)
 
         # qlabel para visualizar la camara
@@ -109,7 +116,7 @@ class Camara(QWidget):
 
     def capturar_imagen(self):
 
-        # Detener el timer para que la imegen no quede en viv
+        # Detener el timer para que la imegen no quede en vivo
         self.timer.stop()
 
         # Capturar la imagen y guardarla
@@ -159,7 +166,7 @@ class Camara(QWidget):
         imagen_invertida = cv2.bitwise_not(img_gris)
 
         # Ajuste colores (umbral >=)
-        _, imagen_bn = cv2.threshold(imagen_invertida, 140, 255, cv2.THRESH_BINARY)
+        _, imagen_bn = cv2.threshold(imagen_invertida, 114, 255, cv2.THRESH_BINARY)
 
         # Aplicar suavizado Gaussiano
         imagen_suavizada = cv2.GaussianBlur(imagen_bn, (5, 5), 0)
@@ -171,7 +178,7 @@ class Camara(QWidget):
 
         # Dibujar contornos en la imagen redimensionada
         for contorno in contornos:
-            cv2.drawContours(resized_img, [contorno], -1, (0, 255, 0), 2)  # Dibuja contornos en verde
+            cv2.drawContours(resized_img, [contorno], -1, (255,0,0), 8)  # Dibuja contornos en verde
 
         # A�adir texto sobre la imagen
         cv2.putText(resized_img, f'Contornos: {num_contornos}', (20, 50), 
@@ -192,8 +199,8 @@ class CanvasGrafica(FigureCanvas):
             self.fig, self.ax = plt.subplots(facecolor='black')
             super().__init__(self.fig)
             self.ax.grid(True, which='both', linestyle='--', color='black', linewidth=0.8)
-            self.ax.set_xlim(left=-22, right=22)
-            self.ax.set_ylim(bottom=-20, top=22)
+            self.ax.set_xlim(left=-18, right=18)
+            self.ax.set_ylim(bottom=-6, top=15)
             self.ax.set_xlabel('Eje X', color='white')
             self.ax.set_ylabel('Eje Y', color='white')
             self.ax.set_aspect('auto')
@@ -216,7 +223,7 @@ class CanvasGrafica(FigureCanvas):
             y = [y]
         
         # Agregar nueva trayectoria como puntos
-        self.ax.plot(x, y, 'bo')  # 'go' para puntos verdes
+        self.ax.plot(x, y, 'bo', markersize=1)  # 'go' para puntos verdes
         self.trayectoria_puntos.extend(zip(x, y))  # Añadir los nuevos puntos a la lista de trayectoria
         self.ax.relim()
         self.ax.autoscale_view()
@@ -229,8 +236,8 @@ class CanvasGrafica(FigureCanvas):
         if self.trayectoria_puntos:
             x_trayectoria, y_trayectoria = zip(*self.trayectoria_puntos)
             #self.ax.plot(x_trayectoria, y_trayectoria, 'g-.s')  # 'go' para puntos verdes
-            #self.ax.plot(x_trayectoria, y_trayectoria, 'g^--', markersize=10, linewidth=2) 
-            self.ax.plot(x_trayectoria, y_trayectoria, 'bo', markeredgewidth=1, markersize=3)
+            # self.ax.plot(x_trayectoria, y_trayectoria, 'g^--', markersize=10, linewidth=2) 
+            self.ax.plot(x_trayectoria, y_trayectoria, 'bo', markeredgewidth=1, markersize=1)
 
         # Redibujar el robot
         self.ax.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-o', lw=6, label='L1')
@@ -238,8 +245,10 @@ class CanvasGrafica(FigureCanvas):
         self.ax.text(p2[0], p2[1], 'L1', fontsize=8, ha='right', color='black', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.1'))
         self.ax.text(p3[0], p3[1], 'L2', fontsize=8, ha='right', color='black', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.1'))
         self.ax.set_title('Robot y Trayectoria', fontsize=12, color='white')
-        self.ax.set_xlim(-18, 18)
-        self.ax.set_ylim(-6, 15)
+        # self.ax.set_xlim(-22, 22)
+        # self.ax.set_ylim(-20, 22)
+        self.ax.set_xlim(left=-18, right=18)
+        self.ax.set_ylim(bottom=-6, top=15)
         self.ax.set_aspect('equal')
         self.draw()
 
@@ -271,11 +280,11 @@ class CanvasGrafica(FigureCanvas):
         self.ax.clear()
         self.ax.imshow(img, aspect='equal', extent=(-width/2, width/2, -height/2, height/2))
 
-        # Configurar el t�tulo y desactivar ejes
+        # Configurar el titulo y desactivar ejes
         self.ax.set_title('Camara', fontsize=12, color='white')
         self.ax.set_axis_off()
         self.draw()
-      
+     
 class Robot:
    
     #Constructor  
@@ -323,9 +332,9 @@ class Robot:
         servo1 = kit.servo[0].angle
         servo2 = kit.servo[1].angle
 
-        # #crem = round(kit.servo[2].angle)
-        # #print(f"1:{servo1}, 2:{servo2}, 3:{crem}")
-        # #if servo1 !=0 or servo2 !=0 or crem !=0 :
+        #crem = round(kit.servo[2].angle)
+        # print(f"1:{servo1}, 2:{servo2}, 3:{crem}")
+        # if servo1 !=0 or servo2 !=0 or crem !=0 :
         if servo1 !=0 or servo2 !=0:
             kit.servo[2].angle=math.degrees(self.arrriba_rad) #Servo Cremallera
             time.sleep(0.3)  # Pausa por 5 segundo
@@ -339,7 +348,7 @@ class Robot:
         # Valor para mover servo1 y servo2 o para mover cremallera
         if valor == 1:
             theta_cre = math.degrees(theta_cre)
-            time.sleep(0.5)
+            time.sleep(0.7)
             kit.servo[2].angle=(theta_cre) #Servo Cremallera
             
         else:
@@ -1268,7 +1277,9 @@ class Robot:
         # Acá se hace el escalamiento de coordenadas
         for i in range(len(contornos)):
             # Ajustar espejo, coordenadas y convertirlas en un array numpy
+            # contorno = np.array([[(punto[0][0]/100)-17, ((punto[0][1]*-1+ofset)/100)-3] for punto in contornos[i]])
             contorno = np.array([[(punto[0][0]/100)-17, ((punto[0][1]*-1+ofset)/100)-3] for punto in contornos[i]])
+
             # Seleccionar cada n elemento y agregar el último punto
             contorno = np.vstack([contorno[0::puntos], contorno[-1]])
             # Añadir el contorno procesado a la lista
@@ -1312,8 +1323,54 @@ class Robot:
         self.pasos = pasos
         self.indice_paso = 0
         self.timer.start(1)
-    
-    #Cinematica Inversa (Coordenadas a Angulos)
+
+    def actualizar_paso(self):
+        self.grafica_robot_nombre.ax.autoscale_view() 
+        self.grafica_robot_camara.ax.autoscale_view() 
+        
+        if self.indice_paso < len(self.pasos):
+            # (theta1,theta2,cremallera,graficar,mov_cremallera)
+            theta1,theta2,theta_cre,graficar,mover = self.pasos[self.indice_paso]
+            MTH = self.CD(theta1,theta2,theta_cre,1)
+            #Cuando se requiera graficar
+            if graficar == 1:  
+                #Para saber en qué axes se grafica los puntos
+                if self.axes == 1:  
+                    self.grafica_robot_nombre.actualizar_trayectoria(MTH.t[0], MTH.t[1])
+                else:
+                    self.grafica_robot_camara.actualizar_trayectoria(MTH.t[0], MTH.t[1])
+                
+            if mover == 0:
+                self.mover_servos(theta1,theta2,theta_cre,0)
+            else:     
+                self.mover_servos(theta1,theta2,theta_cre,1)
+            
+            self.indice_paso += 1
+            
+        else:
+            self.timer.stop()
+
+    # Cinematica Directa (Angulos a Coordenadas)
+    def CD(self, theta1, theta2, theta_cre, graficar):
+            theta_cre = math.degrees(theta_cre)
+            d3 = theta_cre / 50  # Convertir theta_cre en un movimiento lineal
+            q = np.array([theta1, theta2, d3])
+            MTH = self.Robot_Scara.fkine(q)
+            
+            if (graficar == 1):
+                links = self.Robot_Scara.links
+                p1 = [0, 0]
+                p2 = [links[0].a * np.cos(q[0]), links[0].a * np.sin(q[0])]
+                p3 = [p2[0] + links[1].a * np.cos(q[0] + q[1]), p2[1] + links[1].a * np.sin(q[0] + q[1])]
+                #Para saber en qué axes se grafica el robot
+                if (self.axes == 1):
+                    self.grafica_robot_nombre.actualizar_robot(p1, p2, p3)
+                else:
+                    self.grafica_robot_camara.actualizar_robot(p1, p2, p3)
+            
+            return MTH
+
+    # Cinematica Inversa Normal (Coordenadas a Angulos)
     def CI(self,px,py,pz):
         h1 = 5
         l3 = 5
@@ -1342,49 +1399,47 @@ class Robot:
         #Retorno
         return theta1,theta2,theta_cre
 
-    # Cinematica Directa (Angulos a Coordenadas)
-    def CD(self, theta1, theta2, theta_cre, graficar):
-            theta_cre = math.degrees(theta_cre)
-            d3 = theta_cre / 50  # Convertir theta_cre en un movimiento lineal
-            q = np.array([theta1, theta2, d3])
-            MTH = self.Robot_Scara.fkine(q)
-            
-            if (graficar == 1):
-                links = self.Robot_Scara.links
-                p1 = [0, 0]
-                p2 = [links[0].a * np.cos(q[0]), links[0].a * np.sin(q[0])]
-                p3 = [p2[0] + links[1].a * np.cos(q[0] + q[1]), p2[1] + links[1].a * np.sin(q[0] + q[1])]
-                #Para saber en qué axes se grafica el robot
-                if (self.axes == 1):
-                    self.grafica_robot_nombre.actualizar_robot(p1, p2, p3)
-                else:
-                    self.grafica_robot_camara.actualizar_robot(p1, p2, p3)
-            
-            return MTH
-
-    def actualizar_paso(self):
-        self.grafica_robot_nombre.ax.autoscale_view() 
-        self.grafica_robot_camara.ax.autoscale_view() 
+    # # Cinematica Promedio 3 redes Neuronales
+    # def CI(self, px, py, pz): 
+    #     h1 = 5
+    #     l3 = 5
+    #     d3 = -1 * (h1 - l3 - pz)
+    #     theta_cre = d3 * 50
+    #     theta_cre = math.radians(theta_cre)
         
-        if self.indice_paso < len(self.pasos):
-            # (theta1,theta2,cremallera,graficar,mov_cremallera)
-            theta1,theta2,theta_cre,graficar,mover = self.pasos[self.indice_paso]
-            MTH = self.CD(theta1,theta2,theta_cre,1)
-            #Cuando se requiera graficar
-            if graficar == 1:  
-                #Para saber en qué axes se grafica los puntos
-                if self.axes == 1:  
-                    self.grafica_robot_nombre.actualizar_trayectoria(MTH.t[0], MTH.t[1])
-                else:
-                    self.grafica_robot_camara.actualizar_trayectoria(MTH.t[0], MTH.t[1])
-                
-            if mover == 0:
-                self.mover_servos(theta1,theta2,theta_cre,0)
-            else:     
-                self.mover_servos(theta1,theta2,theta_cre,1)
+    #     # Carga los modelos
+    #     model1 = tf.keras.models.load_model('robot_Scara\Datos_Red\model_epoch_33_neurons_210_batchsize_264.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError()})
+    #     model2 = tf.keras.models.load_model('robot_Scara\Datos_Red\model_epoch_77_neurons_200_batchsize_264.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError()})
+    #     model3 = tf.keras.models.load_model('robot_Scara\Datos_Red\model_epoch_80_neurons_250_batchsize_264.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError()})
+        
+    #     # Carga los escaladores
+    #     scaler_x = joblib.load('robot_Scara\Datos_Red\scaler_x.pkl')
+    #     scaler_y = joblib.load('robot_Scara\Datos_Red\scaler_y.pkl')
+        
+    #     # Normaliza los datos de entrada
+    #     data = np.array([[px, py]])
+    #     data_normalized = scaler_x.transform(data)
+        
+    #     # Predicciones de cada modelo
+    #     prediction1 = model1.predict(data_normalized)
+    #     prediction2 = model2.predict(data_normalized)
+    #     prediction3 = model3.predict(data_normalized)
+        
+    #     # Desnormaliza las predicciones
+    #     prediction1_denormalized = scaler_y.inverse_transform(prediction1)
+    #     prediction2_denormalized = scaler_y.inverse_transform(prediction2)
+    #     prediction3_denormalized = scaler_y.inverse_transform(prediction3)
+        
+    #     # Calcula el promedio de los angulos
+    #     theta1_avg = np.mean([prediction1_denormalized[0][0], prediction2_denormalized[0][0], prediction3_denormalized[0][0]])
+    #     theta2_avg = np.mean([prediction1_denormalized[0][1], prediction2_denormalized[0][1], prediction3_denormalized[0][1]])
+        
+    #     # Convierte los angulos a radianes
+    #     theta1 = math.radians(theta1_avg)
+    #     theta2 = math.radians(theta2_avg)
+    #     theta1 = theta1 + 2 * np.pi if theta1 <= -np.pi else theta1
+    #     if abs(theta1) < 0.03 and abs(theta2) < 0.04:
+    #         theta1 = 0
+    #         theta2 = 0
             
-            self.indice_paso += 1
-            
-        else:
-            self.timer.stop()
-
+    #     return theta1, theta2, theta_cre        

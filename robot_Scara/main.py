@@ -32,7 +32,6 @@ ui.layout_camara.addWidget(grafica_camara)
 # Inicializar la clase Camara y pasarle el QLabel como argumento
 camara = Camara(grafica_camara)
 
-
 # Crear una instancia de Robot 
 robot_scara = Robot(
     nombre="Hacker", 

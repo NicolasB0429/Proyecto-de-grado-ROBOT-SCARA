@@ -21,14 +21,15 @@ Se desarrolla el brazo robótico SCARA de 3 grados de libertad (3GDL), programad
 - **Debian GNU/Linux**: Sistema operativo utilizado en la Raspberry Pi.
 
 ### Librerías de Python
-- **NumPy**: Operaciones numéricas y cálculos matriciales.
-- **Math**: Módulo integrado de Python que proporciona funciones matemáticas básicas.
-- **Matplotlib**: Gráficas de trayectorias y áreas de trabajo del robot.
-- **OpenCV**: Reconocimiento de imágenes en tiempo real.
-- **PyQt5**: Interfaz gráfica.
-- **roboticstoolbox**: Librería para la simulación y control de robots, que facilita el desarrollo de algoritmos de robótica.
-- **adafruit_servokit**: Librería para controlar servomotores utilizando el kit de Adafruit, ideal para aplicaciones de robótica.
+- **cv2**: OpenCV es la librería principal para el procesamiento de imágenes y video. Se utiliza para tareas como detección de contornos en imágenes.
+- **tensorflow**: Framework utilizado para construir y entrenar redes neuronales. Facilita el desarrollo de modelos de aprendizaje profundo.
 - **scikit-learn**: Entrenamiento de la Red Neuronal.
+- **adafruit_servokit**: Librería para controlar servomotores utilizando el kit de Adafruit, ideal para aplicaciones de robótica.
+- **roboticstoolbox**: Librería para la simulación y control de robots, que facilita el desarrollo de algoritmos de robótica.
+- **PyQt5**: Interfaz gráfica.
+- **Matplotlib**: Gráficas de trayectorias y áreas de trabajo del robot.
+- **Math**: Módulo integrado de Python que proporciona funciones matemáticas básicas.
+- **NumPy**: Operaciones numéricas y cálculos matriciales
 
 ### Herramientas y Plataformas
 - **Google Colab**: Plataforma en la nube utilizada para desarrollar y entrenar el modelo de red neuronal.
